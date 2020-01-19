@@ -48,7 +48,7 @@ class GeneralizedRCNN(nn.Module):
         """
         if self.training and targets is None:
             raise ValueError("In training mode, targets should be passed")
-        images = to_image_list(images)
+        # images = to_image_list(images)
         features = self.backbone(images.tensors)
         # proposals, proposal_losses = self.rpn(images, features, targets)
         # use gt as proposals instead of rpn
@@ -58,8 +58,6 @@ class GeneralizedRCNN(nn.Module):
             image_width = image_size[1]
             image_height = image_size[0]
             image_bboxes = images.image_bboxes[image_index]
-            # multiply height & width
-            image_bboxes = np.asarray(image_bboxes, dtype='float32')
             # xxyy to xyxy
             image_bboxes = image_bboxes[:,[0,2,1,3]]
             b_row = image_bboxes.shape[0]

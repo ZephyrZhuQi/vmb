@@ -10,6 +10,8 @@ maskrcnn_benchmark.egg-info/
 build/
 dist/
 output/
+data/
+bbox/
 
 # pytorch/python/numpy formats
 *.pth

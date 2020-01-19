@@ -178,7 +178,7 @@ class FeatureExtractor:
         return feat_list, info_list
 
     def get_detectron_features(self, image_paths):
-        img_tensor, im_bboxes, im_scales, im_infos = [], [], []
+        img_tensor, im_bboxes, im_scales, im_infos = [], [], [], []
 
         for image_path in image_paths:
             im, im_scale, im_info = self._image_transform(image_path)
@@ -197,6 +197,8 @@ class FeatureExtractor:
                 bbox = [["0","0","0","0"]]
             image_width = im_info["width"]
             image_height = im_info["height"]
+            # multiply height & width
+            bbox = np.array(bbox).astype(np.float32)
             bbox[:,0] *= image_width
             bbox[:,1] *= image_width
             bbox[:,2] *= image_height
