@@ -16,11 +16,9 @@ import torch
 from PIL import Image
 
 from maskrcnn_benchmark.config import cfg
-from maskrcnn_benchmark.layers import nms
 from maskrcnn_benchmark.modeling.detector import build_detection_model
 from maskrcnn_benchmark.structures.image_list import to_image_list
 from maskrcnn_benchmark.utils.model_serialization import load_state_dict
-from pythia.utils.general import download_file
 
 
 class FeatureExtractor:
@@ -38,14 +36,6 @@ class FeatureExtractor:
         self.detection_model = self._build_detection_model()
 
         os.makedirs(self.args.output_folder, exist_ok=True)
-
-    def _try_downloading_necessities(self):
-        if self.args.model_file is None:
-            print("Downloading model and configuration")
-            self.args.model_file = self.MODEL_URL.split("/")[-1]
-            self.args.config_file = self.CONFIG_URL.split("/")[-1]
-            download_file(self.MODEL_URL)
-            download_file(self.CONFIG_URL)
 
     def get_parser(self):
         parser = argparse.ArgumentParser()
@@ -138,7 +128,6 @@ class FeatureExtractor:
         info_list = []
 
         for i in range(batch_size):
-            dets = output[0]["proposals"][i].bbox / im_scales[i]
             scores = score_list[i]
             max_conf = torch.zeros((scores.shape[0])).to(cur_device)
             conf_thresh_tensor = torch.full_like(max_conf, conf_thresh)
@@ -148,14 +137,12 @@ class FeatureExtractor:
                 start_index = 0
             for cls_ind in range(start_index, scores.shape[1]):
                 cls_scores = scores[:, cls_ind]
-                keep = nms(dets, cls_scores, 0.5)
-                max_conf[keep] = torch.where(
+                max_conf = torch.where(
                     # Better than max one till now and minimally greater than conf_thresh
-                    (cls_scores[keep] > max_conf[keep]) &
-                    (cls_scores[keep] > conf_thresh_tensor[keep]),
-                    cls_scores[keep], max_conf[keep]
+                    (cls_scores > max_conf) &
+                    (cls_scores > conf_thresh_tensor),
+                    cls_scores, max_conf
                 )
-
             sorted_scores, sorted_indices = torch.sort(max_conf, descending=True)
             num_boxes = (sorted_scores[:self.args.num_features] != 0).sum()
             keep_boxes = sorted_indices[:self.args.num_features]
