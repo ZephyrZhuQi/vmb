@@ -20,6 +20,7 @@ from maskrcnn_benchmark.modeling.detector import build_detection_model
 from maskrcnn_benchmark.structures.image_list import to_image_list
 from maskrcnn_benchmark.utils.model_serialization import load_state_dict
 
+import json 
 
 class FeatureExtractor:
     MODEL_URL = (
@@ -36,6 +37,13 @@ class FeatureExtractor:
         self.detection_model = self._build_detection_model()
 
         os.makedirs(self.args.output_folder, exist_ok=True)
+
+        # open bbox_json in __init__, so we only need to do it once 
+        bbox_json = self.args.bbox_json
+        bbox_dict_f = open(bbox_json,'r',encoding='utf-8')
+        self.bbox_dict = json.load(bbox_dict_f)
+        bbox_dict_f.close()
+
 
     def get_parser(self):
         parser = argparse.ArgumentParser()
@@ -65,6 +73,9 @@ class FeatureExtractor:
             "--background", action="store_true",
             help="The model will output predictions for the background class when set"
         )
+        parser.add_argument(
+            "--bbox_json", type=str, default='./bbox/bbox.json', help="bounding box json file"
+        )
         return parser
 
     def _build_detection_model(self):
@@ -83,6 +94,9 @@ class FeatureExtractor:
     def _image_transform(self, path):
         img = Image.open(path)
         im = np.array(img).astype(np.float32)
+        # fix a bug that some images may have 4 channels
+        if im.shape[-1] > 3:
+            im = np.array(img.convert("RGB")).astype(np.float32)
         # IndexError: too many indices for array, grayscale images
         if len(im.shape) < 3:
             im = np.repeat(im[:, :, np.newaxis], 3, axis=2)
@@ -164,7 +178,7 @@ class FeatureExtractor:
         return feat_list, info_list
 
     def get_detectron_features(self, image_paths):
-        img_tensor, im_scales, im_infos = [], [], []
+        img_tensor, im_bboxes, im_scales, im_infos = [], [], []
 
         for image_path in image_paths:
             im, im_scale, im_info = self._image_transform(image_path)
@@ -172,9 +186,27 @@ class FeatureExtractor:
             im_scales.append(im_scale)
             im_infos.append(im_info)
 
+            image_id = os.path.basename(image_path)
+            image_id = image_id.split('.')[0]
+            print(image_id)
+            if not image_id in self.bbox_dict.keys():
+                bbox = [["0","0","0","0"]]
+            else:
+                bbox = self.bbox_dict[image_id]
+            if bbox == []:
+                bbox = [["0","0","0","0"]]
+            image_width = im_info["width"]
+            image_height = im_info["height"]
+            bbox[:,0] *= image_width
+            bbox[:,1] *= image_width
+            bbox[:,2] *= image_height
+            bbox[:,3] *= image_height
+            bbox *= im_scale
+            im_bboxes.append(bbox)
+
         # Image dimensions should be divisible by 32, to allow convolutions
         # in detector to work
-        current_img_list = to_image_list(img_tensor, size_divisible=32)
+        current_img_list = to_image_list(img_tensor, im_bboxes, size_divisible=32)
         current_img_list = current_img_list.to("cuda")
 
         with torch.no_grad():

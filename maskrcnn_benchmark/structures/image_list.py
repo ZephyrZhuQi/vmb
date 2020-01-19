@@ -12,21 +12,23 @@ class ImageList(object):
     and storing in a field the original sizes of each image
     """
 
-    def __init__(self, tensors, image_sizes):
+    def __init__(self, tensors, image_sizes, image_bboxes):
         """
         Arguments:
             tensors (tensor)
             image_sizes (list[tuple[int, int]])
+            image_bboxes (list[bounding box]), where bounding box is 2-dimension(Nx4) array
         """
         self.tensors = tensors
         self.image_sizes = image_sizes
+        self.image_bboxes = image_bboxes
 
     def to(self, *args, **kwargs):
         cast_tensor = self.tensors.to(*args, **kwargs)
-        return ImageList(cast_tensor, self.image_sizes)
+        return ImageList(cast_tensor, self.image_sizes, self.image_bboxes)
 
 
-def to_image_list(tensors, size_divisible=0):
+def to_image_list(tensors, image_bboxes, size_divisible=0):
     """
     tensors can be an ImageList, a torch.Tensor or
     an iterable of Tensors. It can't be a numpy array.
@@ -43,7 +45,7 @@ def to_image_list(tensors, size_divisible=0):
         # single tensor shape can be inferred
         assert tensors.dim() == 4
         image_sizes = [tensor.shape[-2:] for tensor in tensors]
-        return ImageList(tensors, image_sizes)
+        return ImageList(tensors, image_sizes, image_bboxes)
     elif isinstance(tensors, (tuple, list)):
         max_size = tuple(max(s) for s in zip(*[img.shape for img in tensors]))
 
@@ -66,6 +68,6 @@ def to_image_list(tensors, size_divisible=0):
         image_sizes = [im.shape[-2:] for im in batched_imgs]
 
 
-        return ImageList(batched_imgs, image_sizes)
+        return ImageList(batched_imgs, image_sizes, image_bboxes)
     else:
         raise TypeError("Unsupported type for to_image_list: {}".format(type(tensors)))
