@@ -161,15 +161,16 @@ class FeatureExtractor:
             num_boxes = (sorted_scores[:self.args.num_features] != 0).sum()
             keep_boxes = sorted_indices[:self.args.num_features]
             bbox = output[0]["proposals"][i][keep_boxes].bbox / im_scales[i]
+            # Predict the class label using the scores
+            objects = torch.argmax(scores[keep_boxes][:, start_index:], dim=1)
             if np.all(bbox.cpu().numpy()==[[0,0,0,0]]):
-                bbox = np.array([]).astype(np.float32)
+                bbox = bbox.new_tensor([])
                 num_boxes = torch.zeros_like(num_boxes)
-                objects = np.array([])
-                feat_list.append(np.array([]))
+                objects = objects.new_tensor([])
+                feat_list.append(torch.reshape(feats[i][keep_boxes].new_tensor([]), (0,2048)))
             else:
                 feat_list.append(feats[i][keep_boxes])
-                # Predict the class label using the scores
-                objects = torch.argmax(scores[keep_boxes][:, start_index:], dim=1)
+                
 
             info_list.append(
                 {
