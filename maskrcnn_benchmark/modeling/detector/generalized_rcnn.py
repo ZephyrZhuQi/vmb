@@ -59,14 +59,8 @@ class GeneralizedRCNN(nn.Module):
             image_height = image_size[0]
             image_bboxes = images.image_bboxes[image_index]
             # xxyy to xyxy
-            image_bboxes = image_bboxes[:,[0,2,1,3]]
-            b_row = image_bboxes.shape[0]
-            b_col = image_bboxes.shape[1]
-            pad_col = b_col
-            pad_row = b_row if b_row<100 else 100
-            bbox_temp = np.zeros((100,4))
-            bbox_temp[:pad_row,:pad_col]= image_bboxes[:pad_row,:pad_col]    
-            bbox_temp = torch.from_numpy(bbox_temp)    
+            image_bboxes = image_bboxes[:,[0,2,1,3]]  
+            bbox_temp = torch.from_numpy(image_bboxes)    
             bbox_temp = bbox_temp.cuda()
             #print('bbox', bbox_temp)
             proposal = BoxList(bbox_temp, (image_width,image_height), mode="xyxy")
