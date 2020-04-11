@@ -25,6 +25,7 @@ output/
 *.swo
 *.swp
 *~
+*.log
 
 # Pycharm editor settings
 .idea
@@ -32,3 +33,6 @@ output/
 # project dirs
 /datasets
 /models
+/bbox
+/data
+
