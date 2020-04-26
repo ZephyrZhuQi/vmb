@@ -51,7 +51,7 @@ class FeatureExtractor:
         parser.add_argument(
             "--config_file", default=None, type=str, help="Detectron config file"
         )
-        parser.add_argument("--batch_size", type=int, default=2, help="Batch size")
+        parser.add_argument("--batch_size", type=int, default=1, help="Batch size")
         parser.add_argument(
             "--output_folder", type=str, default="./output", help="Output folder"
         )
